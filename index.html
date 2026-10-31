@@ -127,6 +127,11 @@ button.pri:active{transform:translateY(1px)}
 .tabs b{display:inline-block;min-width:22px;padding:1px 6px;margin-left:6px;border-radius:99px;background:var(--liq2);color:#12201c;font-size:14px}
 .det{margin:2px 0 12px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}.di{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:15px;border-bottom:1px solid var(--line)}.di:last-child{border:0}.di b{white-space:nowrap}.tt{font-weight:700}
 .tgt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;background:var(--liq2);color:#12201c;font-weight:600}.tgt button{margin:0;width:auto;padding:8px 14px;background:#12201c;color:#f3fbf7;border:0;border-radius:10px}
+.lnk{width:100%;margin-top:10px;background:var(--tint);border-style:dashed;color:var(--accent);font-weight:600}
+#newform{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px}
+#newform h3{margin:0;font:600 18px var(--f-head,inherit)}
+#newform .btns2{display:flex;gap:10px}#newform .btns2 button{flex:1}
+.mini{width:100%;margin-top:10px}
 </style>
 
 <main>
@@ -145,6 +150,21 @@ button.pri:active{transform:translateY(1px)}
 <input id="q" type="search" placeholder="p.sh. Absolut, Jack, Martini" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-top:0">
 </div>
 <div id="sr" hidden role="listbox" aria-label="Rezultatet e kërkimit"></div>
+<button type="button" class="lnk" id="newbtn">+ Shto pije të re</button>
+<div id="newform" hidden>
+<h3>Pije e re</h3>
+<label for="nn">Emri i pijes<input id="nn" type="text" maxlength="40" placeholder="p.sh. Vodka Zubrowka" autocomplete="off"></label>
+<div class="row2">
+<label for="ng">Lloji<select id="ng"><option value="0.948">Vodka</option><option value="0.948">Uiski</option><option value="0.948">Konjak / brandy</option><option value="0.948">Rakia</option><option value="0.945">Rum</option><option value="0.945">Xhin</option><option value="0.945">Tekila</option><option value="1.05">Liker</option><option value="1.00">Aperitiv</option><option value="1.00">Tjetër</option></select></label>
+<label for="nv">Madhësia<select id="nv"></select></label>
+</div>
+<div class="row2">
+<label for="nf">Plot (g)<input id="nf" type="number" inputmode="decimal" placeholder="p.sh. 1520"></label>
+<label for="ne">Zbrazët (g)<input id="ne" type="number" inputmode="decimal" placeholder="opsionale"></label>
+</div>
+<p class="err" id="nerr" role="alert"></p>
+<div class="btns2"><button type="button" class="pri" id="nsave" style="margin-top:0">Ruaj pijen</button><button type="button" id="ncancel">Anulo</button></div>
+</div>
 </div>
 <label for="type">Ose zgjidhe nga lista
 <select id="type">
@@ -279,14 +299,16 @@ button.pri:active{transform:translateY(1px)}
 <div class="in"><input id="cur" type="number" inputmode="decimal" placeholder="0" aria-label="Sa peshon shishja tani (g)"><span class="u">g</span></div>
 </div>
 </div>
-<details>
-<summary>Kam pesha të sakta (opsionale)</summary>
+<details open>
+<summary>Pesha e shishes (ruhet vetë)</summary>
 <div class="row2" style="margin-top:8px">
 <label for="full">Shishja e plotë (g)
 <input id="full" type="number" inputmode="decimal" placeholder="nuk e di"></label>
 <label for="empty">Shishja e zbrazët (g)
 <input id="empty" type="number" inputmode="decimal" placeholder="nuk e di"></label>
 </div>
+<button type="button" class="mini" id="wsave">Ruaj peshën</button>
+<button type="button" class="mini" id="wdel" hidden>Fshi këtë pije</button>
 </details>
 <p class="err" id="err" role="alert"></p>
 </section>
@@ -536,13 +558,27 @@ $('q').addEventListener('keydown',e=>{
 if(e.key==='Enter'){const b=$('sr').querySelector('.hit');if(b){e.preventDefault();b.click()}}
 if(e.key==='Escape'){$('q').value='';searchRun()}
 });
+let customs=[];try{customs=JSON.parse(localStorage.getItem('bar_custom')||'[]')||[]}catch(e){customs=[]}
+function saveCustoms(){try{localStorage.setItem('bar_custom',JSON.stringify(customs))}catch(e){}}
+function addCustomOption(c){
+let g=document.getElementById('gmy');
+if(!g){g=document.createElement('optgroup');g.id='gmy';g.label='Pijet e mia';$('type').appendChild(g)}
+const val=c.d+'|40|'+c.name+'|'+c.v;
+if([...g.children].some(o=>o.value===val))return [...g.children].find(o=>o.value===val);
+const o=document.createElement('option');o.value=val;o.textContent=c.name;g.appendChild(o);
+OPT.push({o:o,n:norm(c.name),g:'Pijet e mia'});
+return o;
+}
+function isCustom(o){return o&&o.parentElement&&o.parentElement.id==='gmy'}
+function updDel(){const o=$('type').selectedOptions[0];$('wdel').hidden=!isCustom(o)}
+customs.forEach(addCustomOption);
 let DBREF=null,syncT=null,syncBusy=false,syncAgain=false;
 function sync(){if(!DBREF)return;clearTimeout(syncT);syncT=setTimeout(push,600)}
 async function push(){
 if(!DBREF)return;
 if(syncBusy){syncAgain=true;return}
 syncBusy=true;
-try{await DBREF.set({v:1,items:items,wts:wts,sizes:sizes})}catch(e){}
+try{await DBREF.set({v:1,items:items,wts:wts,sizes:sizes,custom:customs})}catch(e){}
 syncBusy=false;
 if(syncAgain){syncAgain=false;push()}
 }
@@ -560,12 +596,14 @@ if(d&&!touched){
 if(Array.isArray(d.items))items=d.items.filter(okItem);
 if(d.wts&&typeof d.wts==='object')wts=Object.assign({},wts,d.wts);
 if(d.sizes&&typeof d.sizes==='object')sizes=Object.assign({},sizes,d.sizes);
+if(Array.isArray(d.custom))d.custom.forEach(c=>{if(c&&c.name&&!customs.some(x=>x.name===c.name&&x.v===c.v)){customs.push(c);addCustomOption(c)}});
+saveCustoms();
 try{localStorage.setItem('bar_items',JSON.stringify(items));localStorage.setItem('bar_weights',JSON.stringify(wts));localStorage.setItem('bar_sizes',JSON.stringify(sizes))}catch(e){}
 render();loadW();calc();
 DBREF=ref;
 }else{
 DBREF=ref;
-if(touched||items.length||Object.keys(wts).length)push();
+if(touched||items.length||customs.length||Object.keys(wts).length)push();
 }
 try{
 const sc=await COL.get();
@@ -579,9 +617,53 @@ try{if(!localStorage.getItem('bar_name')&&saved.length){const lt=ordered().pop()
 }catch(e){}
 }catch(e){}
 }
+$('nv').innerHTML=$('vol').innerHTML;$('nv').value='1000';
+$('newbtn').onclick=()=>{const f=$('newform');f.hidden=!f.hidden;if(!f.hidden)$('nn').focus()};
+$('ncancel').onclick=()=>{$('newform').hidden=true;$('nerr').textContent=''};
+$('nsave').onclick=()=>{
+const name=$('nn').value.replace(/[|]/g,' ').replace(/\s+/g,' ').trim(),d=$('ng').value,v=$('nv').value,f=+$('nf').value,e=$('ne').value.trim()===''?0:+$('ne').value;
+if(!name){$('nerr').textContent='Shkruaj emrin e pijes.';return}
+if(!(f>0)){$('nerr').textContent='Shkruaj peshën e shishes së plotë (në gram).';return}
+if(e&&!(f>e)){$('nerr').textContent='Pesha e plotë duhet të jetë më e madhe se e zbrazëta.';return}
+if(f<+v*0.5){$('nerr').textContent='Pesha duket shumë e vogël për këtë madhësi. Kontrollo numrin.';return}
+$('nerr').textContent='';
+const c={name:name,d:d,v:v};
+if(!customs.some(x=>x.name===name&&x.v===v)){customs.push(c);saveCustoms()}
+const o=addCustomOption(c);
+wts[name+'|'+v]={f:String(f),e:e?String(e):''};
+try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(err){}
+touched=true;sync();
+$('type').value=o.value;pick();updDel();
+$('nn').value='';$('nf').value='';$('ne').value='';$('newform').hidden=true;
+say('U ruajt "'+name+'". Tani shkruaj peshën në peshore.');window.scrollTo({top:0,behavior:'smooth'});
+};
+$('wsave').onclick=()=>{
+const f=$('full').value.trim(),e=$('empty').value.trim();
+if(f===''&&e===''){say('Shkruaj fillimisht peshën e plotë ose të zbrazët.');return}
+saveW();
+const nm=$('type').value.split('|')[2]+' '+$('vol').selectedOptions[0].text;
+say('U ruajt pesha për '+nm+'.');
+};
+$('type').addEventListener('change',updDel);
+const _choose=choose;choose=function(o){_choose(o);updDel()};
+let delT=null;
+$('wdel').onclick=()=>{
+const o=$('type').selectedOptions[0];if(!isCustom(o))return;
+if(delT===null){$('wdel').textContent='Sigurt? Prek përsëri';delT=setTimeout(()=>{delT=null;$('wdel').textContent='Fshi këtë pije'},3000);return}
+clearTimeout(delT);delT=null;$('wdel').textContent='Fshi këtë pije';
+const p=o.value.split('|'),nm=p[2],v=p[3];
+customs=customs.filter(x=>!(x.name===nm&&x.v===v));saveCustoms();
+delete wts[nm+'|'+v];try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(err){}
+const i=OPT.findIndex(x=>x.o===o);if(i>=0)OPT.splice(i,1);
+o.remove();touched=true;sync();
+$('type').selectedIndex=0;pick();updDel();say('Pija u fshi.');
+};
+updDel();
 cloudInit();
 pick();render();renderSaved();
 </script>
+</body>
+</html>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body>
 </html>
