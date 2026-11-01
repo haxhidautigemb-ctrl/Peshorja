@@ -11,6 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
+<style id="lock">#newbtn,#newform,#wsave,#wdel{display:none!important}</style>
 <title>Peshorja e barit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -445,9 +446,18 @@ await saveFile(fileBase(name,iso)+'.csv','﻿'+rows.map(r=>r.map(c=>'"'+String(c
 function alert0(){const b=$('tab2');b.textContent='Pastro listën fillimisht';setTimeout(()=>{b.innerHTML='Të ruajturat<b id="cnt">'+saved.length+'</b>'},2500)}
 function arm(btn,label,fn){let t=null;btn.onclick=()=>{if(t===null){btn.textContent='Sigurt?';t=setTimeout(()=>{t=null;btn.textContent=label},3000);return}clearTimeout(t);t=null;btn.textContent=label;fn()}}
 function saveLocalSaved(){try{localStorage.setItem('bar_saved',JSON.stringify(saved))}catch(e){}}
-let view=1,target=null;
-function setView(v){view=v;document.querySelectorAll('.vm').forEach(e=>e.hidden=v!==1);$('savedcard').hidden=v!==2;$('tab1').setAttribute('aria-selected',v===1);$('tab2').setAttribute('aria-selected',v===2);$('listcard').hidden=v!==1||!!target;$('tgt').hidden=!(target&&v===1);window.scrollTo({top:0})}
-$('tgtx').onclick=()=>{target=null;setView(2)};
+let view=1,target=null,edit=null;
+function setView(v){view=v;document.querySelectorAll('.vm').forEach(e=>e.hidden=v!==1);$('savedcard').hidden=v!==2;$('tab1').setAttribute('aria-selected',v===1);$('tab2').setAttribute('aria-selected',v===2);$('listcard').hidden=v!==1||!!target;$('tgt').hidden=!((target||edit)&&v===1);window.scrollTo({top:0})}
+function endEdit(){const w=edit&&edit.rec?2:1;edit=null;$('add').textContent='Shto në listë';$('cur').value='';calc();setView(w)}
+$('tgtx').onclick=()=>{if(edit){endEdit();return}target=null;setView(2)};
+function startEdit(arr,idx,rec){
+const x=arr[idx];let tv=null,vv=null;
+if(x.t){tv=x.t;vv=x.v}else{let best=null;[...$('type').options].forEach(o=>{const n=o.value.split('|')[2];if(x.name.startsWith(n+' ')&&(!best||n.length>best.n.length))best={o:o,n:n}});
+if(best){tv=best.o.value;const rest=x.name.slice(best.n.length+1);const vo=[...$('vol').options].find(o=>o.text===rest);vv=vo?vo.value:null}}
+if(!tv){say('Kjo pije nuk gjendet në listë. Fshije dhe shtoje përsëri.');return}
+target=null;edit={arr:arr,idx:idx,rec:rec};
+$('type').value=tv;pick();if(vv)$('vol').value=vv;loadW();$('cur').value=x.g||'';calc();
+$('tgtn').textContent='Po ndryshon peshën: '+x.name;$('add').textContent='Ruaj ndryshimin';setView(1);$('cur').focus()}
 $('tab1').onclick=()=>{setView(1)};$('tab2').onclick=()=>setView(2);
 function renderSaved(){
 const S=$('saved');S.textContent='';
@@ -463,7 +473,7 @@ const bt=document.createElement('div');bt.className='btns';
 const mk=(label)=>{const b=document.createElement('button');b.type='button';b.textContent=label;bt.appendChild(b);return b};
 const bp=mk('Shto pije'),bo=mk('Hap'),bc=mk('Kopjo'),bx=mk('Excel'),bd=mk('Fshi');
 const dt=document.createElement('div');dt.className='det';dt.hidden=true;
-r.items.forEach(x=>{const d=document.createElement('div');d.className='di';const a1=document.createElement('span');a1.textContent=x.name;const b1=document.createElement('b');b1.textContent=(x.ml/1000).toFixed(2)+' L · '+x.pct+'%';d.append(a1,b1);dt.appendChild(d)});
+r.items.forEach((x,xi)=>{const d=document.createElement('div');d.className='di';const a1=document.createElement('span');a1.textContent=x.name;const b1=document.createElement('b');b1.textContent=(x.ml/1000).toFixed(2)+' L · '+x.pct+'%';const be=document.createElement('button');be.type='button';be.textContent='Ndrysho';be.style.cssText='margin:0 0 0 8px;width:auto;padding:4px 10px;font-size:13px';be.onclick=()=>startEdit(r.items,xi,r);d.append(a1,b1,be);dt.appendChild(d)});
 const tt=document.createElement('div');tt.className='di tt';const ta=document.createElement('span');ta.textContent='Totali';const tb=document.createElement('b');tb.textContent=L2(t.ml)+' L';tt.append(ta,tb);dt.appendChild(tt);
 bp.onclick=()=>{target=r;$('tgtn').textContent='Po shton te '+r.name+' ('+r.items.length+' shishe)';setView(1)};
 bo.onclick=()=>{dt.hidden=!dt.hidden;bo.textContent=dt.hidden?'Hap':'Mbyll'};
@@ -518,7 +528,8 @@ $('type').addEventListener('change',()=>{$('cur').value='';pick()});
 $('add').onclick=()=>{
 calc();if(!cur)return;
 const nm=$('type').value.split('|')[2]+' '+($('vol').selectedOptions[0].text);
-const it={name:nm,ml:cur.ml,pct:cur.pct,doses:cur.doses};
+const it={name:nm,ml:cur.ml,pct:cur.pct,doses:cur.doses,t:$('type').value,v:$('vol').value,g:+$('cur').value};
+if(edit){const E=edit;E.arr[E.idx]=it;if(E.rec){saveLocalSaved();if(COL)COL.doc(E.rec.id).set(E.rec).catch(()=>{});renderSaved()}else{save();render()}endEdit();say('✓ Pesha u ndryshua.');return}
 if(target){target.items.push(it);saveLocalSaved();if(COL)COL.doc(target.id).set(target).catch(()=>{});renderSaved();$('tgtn').textContent='✓ U shtua te '+target.name+' ('+target.items.length+' shishe)';return}
 items.push(it);
 save();render();
