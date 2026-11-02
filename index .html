@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e5a49">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Peshorja">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style id="lock">#newbtn,#newform,#wsave,#wdel,#mybtn,#mylist{display:none!important}</style>
+<title>Peshorja e barit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column, like an instrument panel: search, scale display, result gauge, ledger. */
+:root{
+--bg:#e8eeea;--surface:#f8fbf9;--ink:#12201c;--mute:#53645d;--line:#c9d6cf;
+--accent:#0e5a49;--onaccent:#f3fbf7;--liq:#d98a14;--liq2:#f3bd52;--err:#a32d2d;
+--lcd:#0f1f1b;--lcdfg:#9df5d6;--lcdmute:#5f9c88;--tint:#dcebe4;
+--f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+--f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+--f-data:"DM Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--bg:#0a110f;--surface:#121d19;--ink:#e8f1ed;--mute:#93a99f;--line:#243630;
+--accent:#52cfae;--onaccent:#05211a;--liq:#f0a62b;--liq2:#ffd27a;--err:#f09595;
+--lcd:#050a09;--lcdfg:#9df5d6;--lcdmute:#5f9c88;--tint:#17261f;color-scheme:dark}}
+:root[data-theme="dark"]{
+--bg:#0a110f;--surface:#121d19;--ink:#e8f1ed;--mute:#93a99f;--line:#243630;
+--accent:#52cfae;--onaccent:#05211a;--liq:#f0a62b;--liq2:#ffd27a;--err:#f09595;
+--lcd:#050a09;--lcdfg:#9df5d6;--lcdmute:#5f9c88;--tint:#17261f;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 var(--f-body);padding-block:8px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;gap:14px;padding:10px 2px 4px}
+.mark{flex:none;width:52px;height:52px;border-radius:16px;background:var(--accent);display:grid;place-items:center}
+.mark svg{width:30px;height:30px}
+h1{font:700 28px/1.1 var(--f-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:2px 0 0;font-size:14px;color:var(--mute)}
+h2{font:600 18px/1.2 var(--f-display);margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+label,.lbl{display:block;font-size:13px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+input,select{width:100%;margin-top:6px;padding:11px 12px;font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;min-height:50px;text-transform:none;letter-spacing:0}
+select{appearance:auto}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.search{position:relative}
+.search input{padding-left:42px;font-size:18px;background:var(--surface);border-width:2px;border-color:var(--accent)}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--accent);pointer-events:none}
+#sr{margin-top:8px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+.hit{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;min-height:50px;padding:10px 14px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:var(--surface);color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.hit:last-child{border-bottom:0}
+.hit span{font-weight:600}
+.hit small{font-size:13px;color:var(--mute);white-space:nowrap}
+.hit:hover,.hit:focus-visible{background:var(--tint)}
+.none{margin:0;padding:14px;color:var(--mute);font-size:15px}
+.dose{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:50px;margin-top:6px;padding:0 14px;border-radius:12px;background:var(--tint);border:1px solid var(--line)}
+.dose b{font:500 20px var(--f-data)}
+.dose span{font-size:13px;color:var(--mute)}
+.lcd{margin-top:6px;border-radius:18px;background:var(--lcd);padding:14px 18px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:inset 0 2px 10px rgba(0,0,0,.45)}
+.lcd .cap{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--lcdmute)}
+.lcd .in{display:flex;align-items:baseline;gap:8px}
+.lcd input{margin:0;min-height:0;border:0;background:transparent;color:var(--lcdfg);font:500 44px/1.15 var(--f-data);padding:0;text-align:right;border-radius:0;letter-spacing:.02em}
+.lcd input::placeholder{color:var(--lcdmute);opacity:.55}
+.lcd input:focus{outline:none}
+.lcd:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.lcd .u{font:500 22px var(--f-data);color:var(--lcdmute)}
+details{margin-top:2px}
+summary{font-size:15px;color:var(--mute);cursor:pointer;min-height:36px;display:flex;align-items:center}
+.err{color:var(--err);font-size:15px;min-height:20px;margin:0;font-weight:500}
+.err:empty{display:none}
+.res{display:flex;gap:20px;align-items:center}
+.gauge{position:relative;flex:none;width:86px;height:206px}
+.gauge .neck{position:absolute;left:31px;top:0;width:24px;height:50px;border:2px solid var(--ink);border-bottom:0;border-radius:7px 7px 0 0;background:var(--bg)}
+.gauge .body{position:absolute;left:0;right:0;top:38px;bottom:0;border:2px solid var(--ink);border-radius:30px 30px 14px 14px;overflow:hidden;background:var(--bg)}
+#fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--liq2),var(--liq));transition:height .35s ease}
+#fill:before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--liq2);opacity:.9}
+.gauge .tk{position:absolute;right:0;width:14px;height:2px;background:var(--ink);opacity:.45}
+.stats{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 14px}
+.stat small{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.stat b{font:500 28px/1.15 var(--f-data);font-variant-numeric:tabular-nums}
+.stat.hero{grid-column:1/-1}
+.stat.hero b{font-size:46px;color:var(--accent)}
+.raw{font:400 14px var(--f-data);color:var(--mute);font-style:normal;margin-left:10px}
+.stat.hero i{font:400 18px var(--f-data);color:var(--mute);font-style:normal;margin-left:4px}
+.note{font-size:14px;color:var(--mute);margin:14px 0 0}
+button{font:inherit;min-height:50px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button.pri{background:var(--accent);color:var(--onaccent);border-color:var(--accent);width:100%;margin-top:14px;font-weight:600;font-size:17px}
+button.pri:active{transform:translateY(1px)}
+.card>.head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .n{flex:1;min-width:0}
+.row .nm{font-weight:600}
+.row .n small{display:block;font:400 14px var(--f-data);color:var(--mute)}
+.bar{height:5px;border-radius:3px;background:var(--tint);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--liq);border-radius:3px}
+.row button{min-height:42px;padding:0 14px}
+.tot{display:flex;justify-content:space-between;gap:12px;font-weight:600;padding-top:14px;border-top:2px solid var(--ink);margin-top:2px}
+.tot span:last-child{font-family:var(--f-data);font-weight:500}
+.empty{color:var(--mute);font-size:15px;margin:0}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.acts button{flex:1 1 150px}
+.savebox{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.sv{display:flex;gap:10px;align-items:stretch}
+.sv input{flex:1;min-width:0;margin-top:6px}
+.sv button{flex:none;margin-top:6px}
+.msg{font-size:14px;font-weight:500;color:var(--accent);min-height:20px;margin:12px 0 0}
+.msg:empty{display:none}
+#cp{width:100%;min-height:130px;margin-top:10px;padding:10px;font:14px/1.4 var(--f-data);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px}
+.row.sr{flex-wrap:wrap}
+.btns{display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.btns button{flex:1 1 70px;min-height:42px;padding:0 10px;font-size:15px}
+.hint{font-size:14px;color:var(--mute);margin:0 0 6px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){#fill{transition:none}}
+@media (max-width:380px){.res{gap:14px}.gauge{width:72px}.stat.hero b{font-size:38px}.lcd input{font-size:38px}}
+.tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;background:var(--bg);border:1px solid var(--line);border-radius:16px}
+.tabs button{margin:0;padding:12px 8px;border-radius:11px;border:0;background:transparent;color:var(--ink);font:600 16px inherit;font-family:inherit}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--onaccent)}
+.tabs b{display:inline-block;min-width:22px;padding:1px 6px;margin-left:6px;border-radius:99px;background:var(--liq2);color:#12201c;font-size:14px}
+.det{margin:2px 0 12px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}.di{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:15px;border-bottom:1px solid var(--line)}.di:last-child{border:0}.di b{white-space:nowrap}.tt{font-weight:700}
+.tgt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;background:var(--liq2);color:#12201c;font-weight:600}.tgt button{margin:0;width:auto;padding:8px 14px;background:#12201c;color:#f3fbf7;border:0;border-radius:10px}
+.lnk{width:100%;margin-top:10px;background:var(--tint);border-style:dashed;color:var(--accent);font-weight:600}
+#newform{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--bg);display:flex;flex-direction:column;gap:12px}
+#newform h3{margin:0;font:600 18px var(--f-head,inherit)}
+#newform .btns2{display:flex;gap:10px}#newform .btns2 button{flex:1}
+.mini{width:100%;margin-top:10px}
+</style>
+
+<main>
+<header>
+<div class="mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M13 3h6v6l3 4v14a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V13l3-4V3z" stroke="#f3fbf7" stroke-width="2" stroke-linejoin="round"/><path d="M10 19h12v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8z" fill="#f3bd52"/></svg></div>
+<div><h1>Peshorja e barit</h1><p>Peshoje shishen dhe shiko sa ka mbetur.</p></div>
+</header>
+<div class="tabs" role="tablist"><button type="button" id="tab1" role="tab" aria-selected="true">Peshorja</button><button type="button" id="tab2" role="tab" aria-selected="false">Të ruajturat<b id="cnt">0</b></button></div>
+<div class="tgt" id="tgt" hidden><span id="tgtn"></span><button type="button" id="tgtx">Mbaro</button></div>
+
+<section class="card stack vm" aria-label="Zgjidhja e pijes">
+<div>
+<label for="q">Kërko pijen</label>
+<div class="search" style="margin-top:6px">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+<input id="q" type="search" placeholder="p.sh. Absolut, Jack, Martini" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-top:0">
+</div>
+<div id="sr" hidden role="listbox" aria-label="Rezultatet e kërkimit"></div>
+<button type="button" class="lnk" id="newbtn">+ Shto pije të re</button>
+<button type="button" class="lnk" id="mybtn" style="margin-top:6px">📋 Pijet e mia (0)</button>
+<div id="mylist" hidden></div>
+<div id="newform" hidden>
+<h3>Pije e re</h3>
+<label for="nn">Emri i pijes<input id="nn" type="text" maxlength="40" placeholder="p.sh. Vodka Zubrowka" autocomplete="off"></label>
+<div class="row2">
+<label for="ng">Lloji<select id="ng"><option value="0.948">Vodka</option><option value="0.948">Uiski</option><option value="0.948">Konjak / brandy</option><option value="0.948">Rakia</option><option value="0.945">Rum</option><option value="0.945">Xhin</option><option value="0.945">Tekila</option><option value="1.05">Liker</option><option value="1.00">Aperitiv</option><option value="1.00">Tjetër</option></select></label>
+<label for="nv">Madhësia<select id="nv"></select></label>
+</div>
+<div class="row2">
+<label for="nf">Plot (g)<input id="nf" type="number" inputmode="decimal" placeholder="p.sh. 1520"></label>
+<label for="ne">Zbrazët (g)<input id="ne" type="number" inputmode="decimal" placeholder="opsionale"></label>
+</div>
+<p class="err" id="nerr" role="alert"></p>
+<div class="btns2"><button type="button" class="pri" id="nsave" style="margin-top:0">Ruaj pijen</button><button type="button" id="ncancel">Anulo</button></div>
+</div>
+</div>
+<label for="type">Ose zgjidhe nga lista
+<select id="type">
+<optgroup label="Vodka">
+<option value="0.948|40|Absolut|1000">Absolut</option>
+<option value="0.948|40|Smirnoff|1000">Smirnoff</option>
+<option value="0.948|40|Grey Goose|700">Grey Goose</option>
+<option value="0.948|40|Belvedere|700">Belvedere</option>
+<option value="0.948|40|Finlandia|1000">Finlandia</option>
+<option value="0.948|40|Stolichnaya|1000">Stolichnaya</option>
+<option value="0.948|40|Russian Standard|1000">Russian Standard</option>
+<option value="0.948|40|Vodka tjetër|700">Vodka tjetër</option>
+<option value="0.948|40|Ciroc|700">Ciroc</option>
+<option value="0.948|40|Au Vodka|700">Au Vodka</option>
+<option value="0.98|40|Pushkin Black|700">Pushkin Black</option>
+<option value="0.98|40|Pushkin Red|700">Pushkin Red</option>
+<option value="0.948|40|Ursus|700">Ursus</option>
+<option value="0.948|40|Vodka Fire&amp;Ice|1000">Vodka Fire&amp;Ice</option>
+<option value="0.98|40|Pushkin White|700">Pushkin White</option>
+</optgroup>
+<optgroup label="Uiski">
+<option value="0.948|40|Jack Daniel's|1000">Jack Daniel's</option>
+<option value="0.948|40|Johnnie Walker|700">Johnnie Walker</option>
+<option value="0.948|40|Jameson|700">Jameson</option>
+<option value="0.948|40|Chivas Regal|1000">Chivas Regal</option>
+<option value="0.948|40|Ballantine's|1000">Ballantine's</option>
+<option value="0.948|40|Jim Beam|1000">Jim Beam</option>
+<option value="0.948|40|Glenfiddich|700">Glenfiddich</option>
+<option value="0.948|40|J&B|1000">J&B</option>
+<option value="0.948|40|Uiski tjetër|700">Uiski tjetër</option>
+<option value="1.03|40|Jack Daniel's Honey|700">Jack Daniel's Honey</option>
+<option value="0.948|40|Dimple|1000">Dimple</option>
+<option value="0.948|40|Ardbeg Ten|700">Ardbeg Ten</option>
+<option value="0.948|40|Canadian Special Old|700">Canadian Special Old</option>
+<option value="0.948|40|White Horse|750">White Horse</option>
+<option value="0.948|40|Johnnie Walker Swing|750">Johnnie Walker Swing</option>
+<option value="0.948|40|Johnnie Walker Red|1000">Johnnie Walker Red</option>
+</optgroup>
+<optgroup label="Konjak dhe brandy">
+<option value="0.948|40|Hennessy|700">Hennessy</option>
+<option value="0.95|40|Verak 25|700">Verak 25</option>
+<option value="0.948|40|Rémy Martin|700">Rémy Martin</option>
+<option value="0.948|40|Courvoisier|700">Courvoisier</option>
+<option value="0.948|40|Skenderbeu|700">Skenderbeu</option>
+<option value="0.948|40|Metaxa|750">Metaxa</option>
+<option value="0.948|40|Konjak tjetër|700">Konjak tjetër</option>
+<option value="0.95|40|Badel Lavov|1000">Badel Lavov</option>
+<option value="0.95|40|Stock|1000">Stock</option>
+</optgroup>
+<optgroup label="Rakia">
+<option value="0.948|40|Rakia e rrushit|1000">Rakia e rrushit</option>
+<option value="0.948|40|Rakia e kumbullës|1000">Rakia e kumbullës</option>
+<option value="0.948|40|Rakia e mollës|1000">Rakia e mollës</option>
+<option value="0.948|40|Rakia tjetër|1000">Rakia tjetër</option>
+<option value="0.948|40|Viljamovka|1000">Viljamovka</option>
+<option value="0.948|40|Raki Rushi|750">Raki Rushi</option>
+<option value="0.948|40|Raki Arre|1000">Raki Arre</option>
+<option value="0.948|40|Raki Ftoni|1000">Raki Ftoni</option>
+<option value="0.945|40|Yeni Raki|700">Yeni Raki</option>
+</optgroup>
+<optgroup label="Rum">
+<option value="0.945|40|Bacardi|1000">Bacardi</option>
+<option value="0.945|40|Bacardi Black|1000">Bacardi Black</option>
+<option value="0.945|40|Captain Morgan Black|700">Captain Morgan Black</option>
+<option value="0.945|40|Captain Morgan Gold|700">Captain Morgan Gold</option>
+<option value="0.945|40|Havana Club|700">Havana Club</option>
+<option value="0.945|40|Rum tjetër|700">Rum tjetër</option>
+</optgroup>
+<optgroup label="Xhin">
+<option value="0.945|40|Gordon's|1000">Gordon's</option>
+<option value="0.945|40|Beefeater|1000">Beefeater</option>
+<option value="0.945|40|Tanqueray|700">Tanqueray</option>
+<option value="0.945|40|Bombay Sapphire|1000">Bombay Sapphire</option>
+<option value="0.945|40|Hendrick's|700">Hendrick's</option>
+<option value="0.945|40|Xhin tjetër|700">Xhin tjetër</option>
+<option value="0.945|40|Monkey 47|500">Monkey 47</option>
+<option value="0.945|40|Tanqueray Ten|750">Tanqueray Ten</option>
+<option value="0.945|40|Tanqueray Blackcurrant Royale|700">Tanqueray Blackcurrant Royale</option>
+</optgroup>
+<optgroup label="Tekila">
+<option value="0.948|40|Jose Cuervo|1000">Jose Cuervo</option>
+<option value="0.948|40|Olmeca|700">Olmeca</option>
+<option value="0.948|40|Sierra|1000">Sierra</option>
+<option value="0.948|40|Tekila tjetër|700">Tekila tjetër</option>
+</optgroup>
+<optgroup label="Liker">
+<option value="1.05|40|Baileys|1000">Baileys</option>
+<option value="1.08|40|Amaretto|700">Amaretto</option>
+<option value="1.08|40|Kahlúa|700">Kahlúa</option>
+<option value="1.03|40|Malibu|1000">Malibu</option>
+<option value="1.00|40|Sambuca|700">Sambuca</option>
+<option value="1.08|40|Drambuie|700">Drambuie</option>
+<option value="1.05|40|Liker Shege (shtëpie)|1000">Liker Shege (shtëpie)</option>
+<option value="1.05|40|Limoncello|700">Limoncello</option>
+<option value="1.08|40|Liker tjetër|700">Liker tjetër</option>
+<option value="1.04|40|Cointreau|700">Cointreau</option>
+<option value="1.08|40|Disaronno|700">Disaronno</option>
+<option value="1.00|40|Fernet|700">Fernet</option>
+<option value="1.05|40|Montenegro Amaro|700">Montenegro Amaro</option>
+<option value="1.05|40|Ramazzotti Amaro|700">Ramazzotti Amaro</option>
+<option value="1.25|20|Monin Triple Sec (shurup)|700">Monin Triple Sec (shurup)</option>
+<option value="1.05|40|Dashni me Brina|700">Dashni me Brina</option>
+<option value="0.95|40|Pernod|700">Pernod</option>
+<option value="1.04|40|Southern Comfort|700">Southern Comfort</option>
+</optgroup>
+<optgroup label="Aperitiv dhe të tjera">
+<option value="1.00|40|Jägermeister|1000">Jägermeister</option>
+<option value="0.95|40|Ouzo|700">Ouzo</option>
+<option value="1.05|40|Campari|1000">Campari</option>
+<option value="1.04|40|Aperol|1000">Aperol</option>
+<option value="0.99|40|Martini Rosso|1000">Martini Rosso</option>
+<option value="0.99|40|Martini Bianco|1000">Martini Bianco</option>
+<option value="1.00|40|Martini Bianco Vermouth|1000">Martini Bianco Vermouth</option>
+<option value="1.05|40|Mix për koktella|750">Mix për koktella</option>
+<option value="1.00|40|Aperitiv tjetër|700">Aperitiv tjetër</option>
+</optgroup>
+<optgroup label="Birrë">
+<option value="1.02|500|Birra Dukagjini Bure|20000">Birra Dukagjini Bure (fuçi)</option>
+</optgroup>
+</select></label>
+<div class="row2">
+<label for="vol">Madhësia e shishes
+<select id="vol"><option value="200">0.20 L</option><option value="330">0.33 L</option><option value="500">0.50 L</option><option value="700" selected>0.70 L</option><option value="750">0.75 L</option><option value="1000">1.00 L</option><option value="1500">1.50 L</option><option value="1750">1.75 L</option><option value="20000">20.00 L</option></select></label>
+<div><span class="lbl">Doza</span>
+<div class="dose"><b>4 cl</b><span>e fiksuar</span></div>
+<input id="dose" type="hidden" value="40"></div>
+</div>
+<div>
+<label for="cur">Sa peshon shishja tani</label>
+<div class="lcd">
+<span class="cap">Pesha në peshore</span>
+<div class="in"><input id="cur" type="number" inputmode="decimal" placeholder="0" aria-label="Sa peshon shishja tani (g)"><span class="u">g</span></div>
+</div>
+</div>
+<details>
+<summary>Pesha e shishes (ruhet vetë)</summary>
+<div class="row2" style="margin-top:8px">
+<label for="full">Shishja e plotë (g)
+<input id="full" type="number" inputmode="decimal" placeholder="nuk e di"></label>
+<label for="empty">Shishja e zbrazët (g)
+<input id="empty" type="number" inputmode="decimal" placeholder="nuk e di"></label>
+</div>
+<button type="button" class="mini" id="wsave">Ruaj peshën</button>
+<button type="button" class="mini" id="wdel" hidden>Fshi këtë pije</button>
+</details>
+<p class="err" id="err" role="alert"></p>
+</section>
+
+<section class="card vm">
+<div class="res">
+<div class="gauge" aria-hidden="true"><div class="neck"></div><div class="body"><div id="fill"></div></div><i class="tk" style="bottom:25%"></i><i class="tk" style="bottom:50%"></i><i class="tk" style="bottom:75%"></i></div>
+<div class="stats">
+<div class="stat hero"><small>Mbetur</small><b id="ml">0.00</b><i>L</i><em class="raw" id="mlraw">0 ml</em></div>
+<div class="stat"><small>Përqindja</small><b id="pct">0</b></div>
+<div class="stat"><small>Doza (4 cl)</small><b id="doses">0</b></div>
+<div class="stat"><small>Konsumuar (L)</small><b id="used">0.00</b></div>
+</div>
+</div>
+<p class="note" id="note"></p>
+<button class="pri" id="add" type="button">Shto në listë</button>
+</section>
+
+<section class="card vm" id="listcard">
+<div class="head"><h2>Lista e inventarit</h2></div>
+<div id="list"></div>
+<div class="tot" id="tot" style="display:none"><span>Totali</span><span id="totv"></span></div>
+<button id="clear" type="button" style="margin-top:14px;display:none">Pastro listën</button>
+<div class="acts" id="acts" hidden>
+<button id="copy" type="button">Kopjo tekstin</button>
+<button id="xl" type="button">Shkarko Excel</button>
+</div>
+<div class="savebox" id="savebox" hidden>
+<label for="sname">Emri i shankut (ruhet dhe vazhdon me të radhës)</label>
+<div class="sv"><input id="sname" type="text" value="Bar1" maxlength="40" autocomplete="off"><button class="pri" id="save" type="button" style="width:auto;margin-top:6px">Ruaj</button></div>
+</div>
+<p class="msg" id="msg" role="status"></p>
+<textarea id="cp" hidden readonly aria-label="Teksti i inventarit"></textarea>
+</section>
+
+<section class="card" id="savedcard" hidden>
+<p class="empty" id="svempty">Ende asgjë e ruajtur. Kur të prekësh "Ruaj", shanku shfaqet këtu.</p>
+<div class="head"><h2>Inventarët e ruajtur</h2></div>
+<p class="hint">Çdo shank i ruajtur mbetet këtu me datën e tij.</p>
+<div id="saved"></div>
+<div class="acts" id="allacts" hidden>
+<button id="cpall" type="button">Kopjo të gjitha</button>
+<button id="xlall" type="button">Excel të gjitha</button>
+</div>
+</section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let cur=null,items=[],sizes={},wts={},touched=false,saved=[],COL=null;
+try{wts=JSON.parse(localStorage.getItem('bar_weights')||'{}')||{}}catch(e){wts={}}
+function wkey(){return $('type').value.split('|')[2]+'|'+$('vol').value}
+const DEF={"Jim Beam|700":{"f":"1200","est":1},"Uiski tjetër|700":{"f":"1150","est":1},"Rum tjetër|700":{"f":"1160","est":1},"Bacardi Black|1000":{"f":"1520"},"Captain Morgan Gold|700":{"f":"1083"},"Mix për koktella|750":{"f":"1079"},"Martini Bianco Vermouth|1000":{"f":"1612"},"Birra Dukagjini Bure|20000":{"f":"25150","e":"4820"},"Absolut|1000":{"f":"1601"},"Smirnoff|1000":{"f":"1469"},"Grey Goose|750":{"f":"1450","est":1},"Belvedere|700":{"f":"1229"},"Finlandia|1000":{"f":"1550","est":1},"Stolichnaya|1000":{"f":"1550","est":1},"Russian Standard|1000":{"f":"1550","est":1},"Vodka tjetër|700":{"f":"1150","est":1},"Jack Daniel's|1000":{"f":"1515"},"Johnnie Walker|1000":{"f":"1462"},"Jameson|1000":{"f":"1560","est":1},"Chivas Regal|700":{"f":"1320","est":1},"Ballantine's|1000":{"f":"1558"},"Jim Beam|1000":{"f":"1515"},"Glenfiddich|700":{"f":"1350","est":1},"J&B|1000":{"f":"1566"},"Hennessy|700":{"f":"1178"},"Rémy Martin|700":{"f":"1380","est":1},"Courvoisier|700":{"f":"1226"},"Skenderbeu|700":{"f":"1180","est":1},"Metaxa|700":{"f":"1250","est":1},"Konjak tjetër|700":{"f":"1180","est":1},"Rakia e rrushit|500":{"f":"850","est":1},"Rakia e kumbullës|500":{"f":"850","est":1},"Rakia e mollës|500":{"f":"850","est":1},"Rakia tjetër|500":{"f":"850","est":1},"Bacardi|1000":{"f":"1517"},"Captain Morgan Black|1000":{"f":"1540","est":1},"Havana Club|700":{"f":"1160","est":1},"Gordon's|1000":{"f":"1493"},"Beefeater|1000":{"f":"1540","est":1},"Tanqueray|700":{"f":"1243"},"Bombay Sapphire|700":{"f":"1280"},"Xhin tjetër|700":{"f":"1160","est":1},"Jose Cuervo|1000":{"f":"1550","est":1},"Olmeca|700":{"f":"1220","est":1},"Sierra|1000":{"f":"1626"},"Tekila tjetër|700":{"f":"1150","est":1},"Baileys|700":{"f":"1420","est":1},"Amaretto|700":{"f":"1380","est":1},"Kahlúa|700":{"f":"1230"},"Malibu|700":{"f":"1220","est":1},"Sambuca|700":{"f":"1269"},"Limoncello|700":{"f":"1300","est":1},"Liker tjetër|700":{"f":"1250","est":1},"Jägermeister|700":{"f":"1350","est":1},"Ouzo|700":{"f":"1150","est":1},"Campari|1000":{"f":"1642"},"Aperol|1000":{"f":"1663"},"Drambuie|700":{"f":"1343"},"Martini Rosso|1000":{"f":"1652"},"Martini Bianco|1000":{"f":"1652"},"Ardbeg Ten|700":{"f":"1282"},"Canadian Special Old|700":{"f":"1308"},"Verak 25|700":{"f":"1646"},"Tanqueray Blackcurrant Royale|700":{"f":"1257"},"Liker Shege (shtëpie)|1000":{"f":"1471"},"Aperitiv tjetër|700":{"f":"1200","est":1},"Aperol|700":{"f":"1220","est":1},"Martini Rosso|750":{"f":"1220","est":1},"Martini Bianco|750":{"f":"1220","est":1},"Olmeca|1000":{"f":"1600","est":1},"Sierra|700":{"f":"1260","est":1},"Jägermeister|1000":{"f":"1758"},"Jägermeister|500":{"f":"980","est":1},"Baileys|1000":{"f":"1645"},"Campari|700":{"f":"1240","est":1},"Beefeater|700":{"f":"1180","est":1},"Tanqueray|1000":{"f":"1750","est":1},"Bombay Sapphire|1000":{"f":"1736"},"Hendrick's|1000":{"f":"1850","est":1},"Hendrick's|700":{"f":"1258"},"Jose Cuervo|700":{"f":"1200","est":1},"Metaxa|1000":{"f":"1650","est":1},"Bacardi|700":{"f":"1180","est":1},"Captain Morgan Black|700":{"f":"1075"},"Havana Club|1000":{"f":"1550","est":1},"Gordon's|700":{"f":"1180","est":1},"Glenfiddich|1000":{"f":"1750","est":1},"Hennessy|1000":{"f":"1820","est":1},"Rémy Martin|1000":{"f":"1800","est":1},"Courvoisier|1000":{"f":"1780","est":1},"Skenderbeu|1000":{"f":"1580","est":1},"Skenderbeu|500":{"f":"890","est":1},"Jack Daniel's|700":{"f":"1250","est":1},"Jack Daniel's|500":{"f":"950","est":1},"Johnnie Walker|700":{"f":"1071"},"Jameson|700":{"f":"1142"},"Chivas Regal|1000":{"f":"1537"},"Ballantine's|700":{"f":"1200","est":1},"Absolut|700":{"f":"1220","est":1},"Smirnoff|700":{"f":"1200","est":1},"Grey Goose|1000":{"f":"1820","est":1},"Grey Goose|700":{"f":"1246"},"Belvedere|1000":{"f":"1850","est":1},"Finlandia|700":{"f":"1200","est":1},"Ciroc|700":{"f":"1383"},"Au Vodka|700":{"f":"1517"},"Pushkin Black|700":{"f":"1226"},"Pushkin Red|700":{"f":"1234"},"Jack Daniel's Honey|700":{"f":"1184"},"Badel Lavov|1000":{"f":"1476"},"Stock|1000":{"f":"1654"},"Monkey 47|500":{"f":"905"},"Cointreau|700":{"f":"1367"},"Disaronno|700":{"f":"1475"},"Fernet|700":{"f":"1168"},"Malibu|1000":{"f":"1613"},"Montenegro Amaro|700":{"f":"1219"},"Ramazzotti Amaro|700":{"f":"1258"},"Monin Triple Sec (shurup)|700":{"f":"1307"},"Rakia e kumbullës|1000":{"f":"1505"},"Rakia e mollës|1000":{"f":"1411","e":"508"},"Rakia tjetër|1000":{"f":"1500","est":1},"Raki Rushi|750":{"f":"1333"},"Viljamovka|1000":{"f":"1613"},"Rakia e rrushit|1000":{"f":"1500","est":1},"Dashni me Brina|700":{"f":"1554"},"Dimple|1000":{"f":"1677"},"Johnnie Walker Swing|750":{"f":"1366"},"Metaxa|750":{"f":"1298"},"Pernod|700":{"f":"1299"},"Pushkin White|700":{"f":"1151"},"Raki Arre|1000":{"f":"1505"},"Raki Ftoni|1000":{"f":"1396"},"Southern Comfort|700":{"f":"1207"},"Tanqueray Ten|750":{"f":"1272"},"Ursus|700":{"f":"1218"},"Vodka Fire&Ice|1000":{"f":"1680"},"White Horse|750":{"f":"1202"},"Yeni Raki|700":{"f":"1108"},"Johnnie Walker Red|1000":{"f":"1462"}};
+function loadW(){const k=wkey(),w=wts[k]||{},d=DEF[k]||{};$('full').value=w.f||d.f||'';$('empty').value=w.e||d.e||''}
+function saveW(){wts[wkey()]={f:$('full').value.trim(),e:$('empty').value.trim()};try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(e){}touched=true;sync()}
+try{sizes=JSON.parse(localStorage.getItem('bar_sizes')||'{}')||{}}catch(e){sizes={}}
+try{items=JSON.parse(localStorage.getItem('bar_items')||'[]')||[]}catch(e){items=[]}
+try{saved=JSON.parse(localStorage.getItem('bar_saved')||'[]')||[]}catch(e){saved=[]}
+function save(){touched=true;try{localStorage.setItem('bar_items',JSON.stringify(items))}catch(e){}sync()}
+const GLASS={200:160,330:200,350:300,500:380,700:480,750:520,1000:600,1500:900,1750:1000};
+function calc(){
+cur=null;
+const v=+$('vol').value,d=+$('dose').value,c=+$('cur').value,fR=$('full').value.trim(),eR=$('empty').value.trim();
+let dens=+$('type').value.split('|')[0],e,f,src;
+['ml','pct','doses','used'].forEach(k=>$(k).textContent='0');$('ml').textContent='0.00';$('used').textContent='0.00';$('mlraw').textContent='0 ml';$('fill').style.height='0%';
+if(!(c>0)){$('err').textContent='';$('note').textContent='Shkruaj sa peshon shishja tani.';return}
+if(fR!==''&&eR!==''){f=+fR;e=+eR;if(!(f>e)){$('err').textContent='Shishja e plotë duhet të peshojë më shumë se e zbrazëta.';return}dens=(f-e)/v;src='Rezultati llogaritet nga peshat e tua.'}
+else if(fR!==''){f=+fR;e=f-v*dens;src='Rezultat i mirë, bazuar në peshën e plotë që e shkrove.';const k=wkey(),D=DEF[k];if(D&&D.est&&!(wts[k]&&wts[k].f)&&fR===D.f)src='Pesha e plotë është e vlerësuar nga lista, jo e matur, ndaj gabimi mund të arrijë rreth 60 ml. Për më saktë, peshoje një shishe të re të mbyllur dhe shkruaje te "Kam pesha të sakta".'}
+else if(eR!==''){e=+eR;f=e+v*dens;src='Rezultat i mirë, bazuar në peshën e zbrazët që e shkrove.'}
+else{e=GLASS[v]||480;f=e+v*dens;src='Rezultat përafërsisht (gabim rreth 50-100 ml), sepse xhami ndryshon nga marka. Për më saktë, shto peshën e plotë ose të zbrazët më lart.'}
+if(c<e-5){$('err').textContent='Shishja peshon më pak se një shishe e zbrazët. Kontrollo peshën.';return}
+if(c>f+5){$('err').textContent='Shishja peshon më shumë se një shishe e plotë. Kontrollo peshën.';return}
+$('err').textContent='';
+$('note').textContent=src;
+const ml=Math.max(0,Math.min(v,(c-e)/dens)),ds=Math.round(ml/d*10)/10;
+$('ml').textContent=(Math.round(ml)/1000).toFixed(2);$('mlraw').textContent=Math.round(ml)+' ml';
+$('pct').textContent=Math.round(ml/v*100)+'%';
+$('doses').textContent=ds;
+$('used').textContent=(Math.round(v-ml)/1000).toFixed(2);
+$('fill').style.height=(ml/v*100)+'%';
+cur={ml:Math.round(ml),pct:Math.round(ml/v*100),doses:ds};
+}
+function pad(n){return String(n).padStart(2,'0')}
+function dstr(iso){const d=new Date(iso);return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()}
+function L2(ml){return (ml/1000).toFixed(2)}
+function sums(list){let ml=0,ds=0;list.forEach(x=>{ml+=x.ml;ds+=x.doses});return{ml:ml,ds:Math.round(ds*10)/10}}
+function txtOf(name,iso,list){const t=sums(list);return ['Inventari '+name+' · '+dstr(iso)].concat(list.map(x=>x.name+': '+L2(x.ml)+' L ('+x.pct+'%) · '+x.doses+' doza')).concat(['Totali: '+L2(t.ml)+' L · '+t.ds+' doza']).join('\n')}
+function say(t){const m=$('msg');m.textContent=t;clearTimeout(say.t);say.t=setTimeout(()=>{m.textContent=''},6000)}
+async function copyText(t){
+try{await navigator.clipboard.writeText(t);$('cp').hidden=true;say('U kopjua. Ngjite në Notes ose në email.');return}catch(e){}
+const c=$('cp');c.hidden=false;c.value=t;c.focus();c.select();say('Shtyp gjatë mbi tekstin, zgjidh "Copy" dhe ngjite në Notes ose në email.')
+}
+function fileBase(name,iso){return (name.replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'Inventari')+'_'+iso.slice(0,10)}
+async function saveFile(fn,data){
+try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;if(dl){await dl.save({filename:fn,data:data});say('Skedari është gati.');return}}catch(e){if(e&&e.code==='declined')return}
+try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data]));a.download=fn;document.body.appendChild(a);a.click();a.remove();say('Skedari u shkarkua.')}catch(e){say('Shkarkimi nuk punon këtu. Përdor "Kopjo".')}
+}
+function rowsFor(list){const t=sums(list);return [['Pija','Mbetur (L)','Mbetur (ml)','Përqindja (%)','Doza (4 cl)']].concat(list.map(x=>[x.name,+L2(x.ml),x.ml,x.pct,x.doses])).concat([['Totali',+L2(t.ml),t.ml,'',t.ds]])}
+function aggregate(recs){const m={};recs.forEach(r=>r.items.forEach(x=>{const e=m[x.name]||(m[x.name]={name:x.name,ml:0,doses:0,n:0});e.ml+=x.ml;e.doses+=x.doses;e.n++}));return Object.keys(m).sort((a,b)=>a.localeCompare(b)).map(k=>({name:k,ml:m[k].ml,doses:Math.round(m[k].doses*10)/10,n:m[k].n}))}
+function ordered(){return saved.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.name.localeCompare(b.name,undefined,{numeric:true}))}
+function sumRows(ag){let ml=0,ds=0;ag.forEach(e=>{ml+=e.ml;ds+=e.doses});ds=Math.round(ds*10)/10;return [['Pija','Mbetur (L)','Mbetur (ml)','Doza (4 cl)','Shishe']].concat(ag.map(e=>[e.name,+L2(e.ml),e.ml,e.doses,e.n])).concat([['Totali',+L2(ml),ml,ds,'']])}
+function txtAll(){
+const rs=ordered(),ag=aggregate(rs);let ml=0,ds=0;ag.forEach(e=>{ml+=e.ml;ds+=e.doses});
+const tot=['GJITHSEJ ('+rs.length+' shanqe)'].concat(ag.map(e=>e.name+': '+L2(e.ml)+' L · '+e.doses+' doza'+(e.n>1?' ('+e.n+' shishe)':''))).concat(['Totali: '+L2(ml)+' L · '+Math.round(ds*10)/10+' doza']);
+return rs.map(r=>txtOf(r.name,r.date,r.items)).concat([tot.join('\n')]).join('\n\n');
+}
+function nextName(n){const m=/^(.*?)(\d+)\s*$/.exec(n);return m?m[1]+(parseInt(m[2],10)+1):n+' 2'}
+function sheetName(n,used){let b=(n.replace(/[\[\]:*?\/\\]/g,' ').trim().slice(0,28))||'Shank',x=b,k=2;while(used[x]){x=b+' '+k++}used[x]=1;return x}
+async function exportAll(){
+const rs=ordered(),iso=new Date().toISOString(),sr=sumRows(aggregate(rs));
+if(window.XLSX){
+const wb=XLSX.utils.book_new(),used={};
+const add=(nm,rows,w)=>{const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=w;XLSX.utils.book_append_sheet(wb,ws,sheetName(nm,used))};
+add('Gjithsej',sr,[{wch:34},{wch:12},{wch:12},{wch:12},{wch:8}]);
+rs.forEach(r=>add(r.name,rowsFor(r.items),[{wch:34},{wch:12},{wch:12},{wch:14},{wch:12}]));
+await saveFile(fileBase('Gjithsej',iso)+'.xlsx',XLSX.write(wb,{bookType:'xlsx',type:'array'}));
+}else{
+const q=rows=>rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+const parts=[['GJITHSEJ'],...sr].length?[q([['GJITHSEJ']])+'\r\n'+q(sr)]:[];
+rs.forEach(r=>parts.push(q([[r.name+' · '+dstr(r.date)]])+'\r\n'+q(rowsFor(r.items))));
+await saveFile(fileBase('Gjithsej',iso)+'.csv','\ufeff'+parts.join('\r\n\r\n'));
+}
+}
+async function exportXl(name,iso,list){
+const rows=rowsFor(list);
+if(window.XLSX){
+const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:34},{wch:12},{wch:12},{wch:14},{wch:12}];
+const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Inventari');
+await saveFile(fileBase(name,iso)+'.xlsx',XLSX.write(wb,{bookType:'xlsx',type:'array'}));
+}else{
+await saveFile(fileBase(name,iso)+'.csv','﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\r\n'));
+}
+}
+function alert0(){const b=$('tab2');b.textContent='Pastro listën fillimisht';setTimeout(()=>{b.innerHTML='Të ruajturat<b id="cnt">'+saved.length+'</b>'},2500)}
+function arm(btn,label,fn){let t=null;btn.onclick=()=>{if(t===null){btn.textContent='Sigurt?';t=setTimeout(()=>{t=null;btn.textContent=label},3000);return}clearTimeout(t);t=null;btn.textContent=label;fn()}}
+function saveLocalSaved(){try{localStorage.setItem('bar_saved',JSON.stringify(saved))}catch(e){}}
+let view=1,target=null,edit=null;
+function setView(v){view=v;document.querySelectorAll('.vm').forEach(e=>e.hidden=v!==1);$('savedcard').hidden=v!==2;$('tab1').setAttribute('aria-selected',v===1);$('tab2').setAttribute('aria-selected',v===2);$('listcard').hidden=v!==1||!!target;$('tgt').hidden=!((target||edit)&&v===1);window.scrollTo({top:0})}
+function endEdit(){const w=edit&&edit.rec?2:1;edit=null;$('add').textContent='Shto në listë';$('cur').value='';calc();setView(w)}
+$('tgtx').onclick=()=>{if(edit){endEdit();return}target=null;setView(2)};
+function startEdit(arr,idx,rec){
+const x=arr[idx];let tv=null,vv=null;
+if(x.t){tv=x.t;vv=x.v}else{let best=null;[...$('type').options].forEach(o=>{const n=o.value.split('|')[2];if(x.name.startsWith(n+' ')&&(!best||n.length>best.n.length))best={o:o,n:n}});
+if(best){tv=best.o.value;const rest=x.name.slice(best.n.length+1);const vo=[...$('vol').options].find(o=>o.text===rest);vv=vo?vo.value:null}}
+if(!tv){say('Kjo pije nuk gjendet në listë. Fshije dhe shtoje përsëri.');return}
+target=null;edit={arr:arr,idx:idx,rec:rec};
+$('type').value=tv;pick();if(vv)$('vol').value=vv;loadW();$('cur').value=x.g||'';calc();
+$('tgtn').textContent='Po ndryshon peshën: '+x.name;$('add').textContent='Ruaj ndryshimin';setView(1);$('cur').focus()}
+$('tab1').onclick=()=>{setView(1)};$('tab2').onclick=()=>setView(2);
+function renderSaved(){
+const S=$('saved');S.textContent='';
+$('cnt').textContent=saved.length;$('svempty').hidden=!!saved.length;$('allacts').hidden=saved.length<2;
+saved.forEach(r=>{
+const t=sums(r.items);
+const row=document.createElement('div');row.className='row sr';
+const n=document.createElement('div');n.className='n';
+const a=document.createElement('div');a.className='nm';a.textContent=r.name;
+const s2=document.createElement('small');s2.textContent=dstr(r.date)+' · '+r.items.length+' shishe · '+L2(t.ml)+' L';
+n.append(a,s2);
+const bt=document.createElement('div');bt.className='btns';
+const mk=(label)=>{const b=document.createElement('button');b.type='button';b.textContent=label;bt.appendChild(b);return b};
+const bp=mk('Shto pije'),bo=mk('Hap'),bc=mk('Kopjo'),bx=mk('Excel'),bd=mk('Fshi');
+const dt=document.createElement('div');dt.className='det';dt.hidden=true;
+r.items.forEach((x,xi)=>{const d=document.createElement('div');d.className='di';const a1=document.createElement('span');a1.textContent=x.name;const b1=document.createElement('b');b1.textContent=(x.ml/1000).toFixed(2)+' L · '+x.pct+'%';const be=document.createElement('button');be.type='button';be.textContent='Ndrysho';be.style.cssText='margin:0 0 0 8px;width:auto;padding:4px 10px;font-size:13px';be.onclick=()=>startEdit(r.items,xi,r);d.append(a1,b1,be);dt.appendChild(d)});
+const tt=document.createElement('div');tt.className='di tt';const ta=document.createElement('span');ta.textContent='Totali';const tb=document.createElement('b');tb.textContent=L2(t.ml)+' L';tt.append(ta,tb);dt.appendChild(tt);
+bp.onclick=()=>{target=r;$('tgtn').textContent='Po shton te '+r.name+' ('+r.items.length+' shishe)';setView(1)};
+bo.onclick=()=>{dt.hidden=!dt.hidden;bo.textContent=dt.hidden?'Hap':'Mbyll'};
+bc.onclick=()=>copyText(txtOf(r.name,r.date,r.items));
+bx.onclick=()=>exportXl(r.name,r.date,r.items);
+arm(bd,'Fshi',()=>{saved=saved.filter(x=>x.id!==r.id);saveLocalSaved();if(COL)COL.doc(r.id).delete().catch(()=>{});renderSaved()});
+row.append(n,bt);const wr=document.createElement('div');wr.append(row,dt);S.appendChild(wr);
+});
+}
+$('cpall').onclick=()=>copyText(txtAll());
+$('xlall').onclick=()=>exportAll();
+$('copy').onclick=()=>copyText(txtOf($('sname').value.trim()||'Bar1',new Date().toISOString(),items));
+$('xl').onclick=()=>exportXl($('sname').value.trim()||'Bar1',new Date().toISOString(),items);
+try{const sn=localStorage.getItem('bar_name');if(sn)$('sname').value=sn}catch(e){}
+$('save').onclick=()=>{
+if(!items.length)return;
+const nm=$('sname').value.trim()||'Bar1';
+try{localStorage.setItem('bar_name',nm)}catch(e){}
+const rec={id:'inv_'+Date.now(),name:nm,date:new Date().toISOString(),items:items.map(x=>Object.assign({},x))};
+saved.unshift(rec);saveLocalSaved();
+if(COL)COL.doc(rec.id).set(rec).catch(()=>{});
+const nx=nextName(nm);$('sname').value=nx;try{localStorage.setItem('bar_name',nx)}catch(e){}
+items=[];save();render();renderSaved();
+say('✓ U ruajt si "'+nm+'" (shiko te "Të ruajturat"). Vazhdo me "'+nx+'".');
+};
+function render(){
+const L=$('list');L.textContent='';
+if(!items.length){const p=document.createElement('p');p.className='empty';p.textContent='Lista është bosh. Peshoje një shishe dhe shtoje këtu.';L.appendChild(p)}
+let tm=0,td=0;
+items.forEach((it,i)=>{
+tm+=it.ml;td+=it.doses;
+const r=document.createElement('div');r.className='row';
+const n=document.createElement('div');n.className='n';
+const a=document.createElement('div');a.className='nm';a.textContent=it.name;
+const s=document.createElement('small');s.textContent=(it.ml/1000).toFixed(2)+' L · '+it.pct+'% · '+it.doses+' doza';
+const bar=document.createElement('div');bar.className='bar';const bi=document.createElement('i');bi.style.width=Math.max(0,Math.min(100,it.pct))+'%';bar.appendChild(bi);n.append(a,s,bar);
+const b=document.createElement('button');b.type='button';b.textContent='Fshi';b.setAttribute('aria-label','Fshi '+it.name);
+b.onclick=()=>{items.splice(i,1);save();render()};
+r.append(n,b);L.appendChild(r);
+});
+$('tot').style.display=items.length?'flex':'none';
+$('clear').style.display=items.length?'block':'none';
+$('totv').textContent=(tm/1000).toFixed(2)+' L · '+Math.round(td*10)/10+' doza';
+$('acts').hidden=!items.length;$('savebox').hidden=!items.length;
+if(!items.length)$('cp').hidden=true;
+}
+function pick(){const q=$('type').value.split('|');$('vol').value=sizes[q[2]]||q[3];loadW();calc()}
+$('vol').addEventListener('change',()=>{const q=$('type').value.split('|');sizes[q[2]]=$('vol').value;try{localStorage.setItem('bar_sizes',JSON.stringify(sizes))}catch(e){}touched=true;sync();loadW();calc()});
+['full','empty'].forEach(i=>$(i).addEventListener('input',saveW));
+$('type').addEventListener('change',()=>{$('cur').value='';pick()});
+['vol','dose','full','empty','cur'].forEach(i=>{$(i).addEventListener('input',calc);$(i).addEventListener('change',calc)});
+$('add').onclick=()=>{
+calc();if(!cur)return;
+const nm=$('type').value.split('|')[2]+' '+($('vol').selectedOptions[0].text);
+const it={name:nm,ml:cur.ml,pct:cur.pct,doses:cur.doses,t:$('type').value,v:$('vol').value,g:+$('cur').value};
+if(edit){const E=edit;E.arr[E.idx]=it;if(E.rec){saveLocalSaved();if(COL)COL.doc(E.rec.id).set(E.rec).catch(()=>{});renderSaved()}else{save();render()}endEdit();say('✓ Pesha u ndryshua.');return}
+if(target){target.items.push(it);saveLocalSaved();if(COL)COL.doc(target.id).set(target).catch(()=>{});renderSaved();$('tgtn').textContent='✓ U shtua te '+target.name+' ('+target.items.length+' shishe)';return}
+items.push(it);
+save();render();
+};
+let clr=null;
+$('clear').onclick=()=>{
+if(!clr){$('clear').textContent='Shtyp përsëri për ta fshirë të gjithë listën';clr=setTimeout(()=>{clr=null;$('clear').textContent='Pastro listën'},4000);return}
+clearTimeout(clr);clr=null;$('clear').textContent='Pastro listën';items=[];save();render()
+};
+
+function norm(t){return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/&/g,' ').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim()}
+const OPT=[...$('type').options].map(o=>({o,n:norm(o.value.split('|')[2]),g:o.parentElement.label||''}));
+function searchRun(){
+const q=norm($('q').value),R=$('sr');R.textContent='';
+if(!q){R.hidden=true;return}
+const w=q.split(' ');
+const m=OPT.filter(x=>w.every(t=>x.n.includes(t)));
+m.sort((a,b)=>(b.n.startsWith(w[0])-a.n.startsWith(w[0]))||a.n.localeCompare(b.n));
+R.hidden=false;
+if(!m.length){const p=document.createElement('p');p.className='none';p.textContent='Nuk u gjet asnjë pije. Provo një emër tjetër ose zgjidhe nga lista më poshtë.';R.appendChild(p);return}
+m.slice(0,8).forEach(x=>{
+const b=document.createElement('button');b.type='button';b.className='hit';
+const t=document.createElement('span');t.textContent=x.o.value.split('|')[2];
+const g=document.createElement('small');g.textContent=x.g;
+b.append(t,g);
+b.onclick=()=>choose(x.o);
+R.appendChild(b);
+});
+}
+function choose(o){
+$('type').value=o.value;$('cur').value='';
+$('q').value='';$('sr').hidden=true;$('sr').textContent='';
+pick();$('cur').focus();
+}
+$('q').addEventListener('input',searchRun);
+$('q').addEventListener('keydown',e=>{
+if(e.key==='Enter'){const b=$('sr').querySelector('.hit');if(b){e.preventDefault();b.click()}}
+if(e.key==='Escape'){$('q').value='';searchRun()}
+});
+let customs=[];try{customs=JSON.parse(localStorage.getItem('bar_custom')||'[]')||[]}catch(e){customs=[]}
+function saveCustoms(){try{localStorage.setItem('bar_custom',JSON.stringify(customs))}catch(e){}if(typeof updMy==='function'&&$('mybtn'))updMy()}
+const GM={'Vodka':'Vodka','Uiski':'Uiski','Konjak / brandy':'Konjak dhe brandy','Rakia':'Rakia','Rum':'Rum','Xhin':'Xhin','Tekila':'Tekila','Liker':'Liker','Aperitiv':'Aperitiv dhe të tjera','Tjetër':'Aperitiv dhe të tjera'};
+function addCustomOption(c){
+const val=c.d+'|40|'+c.name+'|'+c.v;
+const ex=[...$('type').options].find(o=>o.value===val);if(ex)return ex;
+const GFIX={'LongMorn':'Uiski','Glen Morangie':'Uiski','Chivas Regal 18':'Uiski','Gin Fire&Ice':'Xhin','Courvaizie VSOP':'Konjak dhe brandy'};
+const gl=c.g||GFIX[c.name]||'';
+let g=gl&&[...$('type').querySelectorAll('optgroup')].find(x=>x.label===gl);
+if(!g){g=document.getElementById('gmy');if(!g){g=document.createElement('optgroup');g.id='gmy';g.label='Pijet e mia';$('type').appendChild(g)}}
+const o=document.createElement('option');o.value=val;o.textContent=c.name;o.dataset.my='1';
+const after=[...g.children].find(x=>x.textContent.localeCompare(c.name,'sq')>0);
+if(after)g.insertBefore(o,after);else g.appendChild(o);
+OPT.push({o:o,n:norm(c.name),g:g.label});
+return o;
+}
+function isCustom(o){return !!(o&&o.dataset&&o.dataset.my==='1')}
+function delCustom(c){
+const o=[...$('type').options].find(x=>x.value===c.d+'|40|'+c.name+'|'+c.v)||[...$('type').options].find(x=>isCustom(x)&&x.value.split('|')[2]===c.name&&x.value.split('|')[3]===c.v);
+customs=customs.filter(x=>!(x.name===c.name&&x.v===c.v));saveCustoms();
+delete wts[c.name+'|'+c.v];try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(err){}
+if(o){const i=OPT.findIndex(x=>x.o===o);if(i>=0)OPT.splice(i,1);const was=$('type').selectedOptions[0]===o;o.remove();if(was){$('type').selectedIndex=0;pick()}}
+touched=true;sync();updDel();updMy();
+}
+function updMy(){
+const vis=customs.filter(c=>!c.hid);$('mybtn').textContent='📋 Pijet e mia ('+vis.length+')';
+const L=$('mylist');if(L.hidden)return;
+L.textContent='';
+const nt=document.createElement('p');nt.className='empty';nt.textContent='Pijet që ke shtuar ti. Shtyp emrin për ta hapur. "Hiq" e heq vetëm nga kjo listë, pija mbetet në listën e pijeve.';L.appendChild(nt);
+if(!vis.length){const p=document.createElement('p');p.className='empty';p.textContent='Lista është bosh.';L.appendChild(p);return}
+vis.slice().sort((a,b)=>a.name.localeCompare(b.name,'sq')).forEach(c=>{
+const r=document.createElement('div');r.style.cssText='display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line,rgba(255,255,255,.12))';
+const w=wts[c.name+'|'+c.v]||{};
+const bits=[(+c.v/1000).toFixed(2)+' L'];
+if(w.f)bits.push('plotë '+w.f+' g');
+if(w.e)bits.push('zbrazët '+w.e+' g');
+if(!w.f&&!w.e)bits.push('pa peshë');
+const n=document.createElement('div');n.style.cssText='min-width:0;cursor:pointer';
+const a1=document.createElement('div');a1.style.cssText='font-weight:700;overflow-wrap:anywhere';a1.textContent=c.name;
+const s2=document.createElement('div');s2.style.cssText='font-size:13px;opacity:.75;margin-top:2px';s2.textContent=bits.join(' · ');
+n.append(a1,s2);
+n.onclick=()=>{const o=[...$('type').options].find(x=>x.value===c.d+'|40|'+c.name+'|'+c.v);if(o){choose(o);$('mylist').hidden=true;window.scrollTo({top:0,behavior:'smooth'})}};
+const bd=document.createElement('button');bd.type='button';bd.textContent='Hiq';bd.style.cssText='width:auto;margin:0;padding:8px 14px;min-width:64px';
+r.append(n,bd);L.appendChild(r);
+arm(bd,'Hiq',()=>{c.hid=true;saveCustoms();touched=true;sync();say('U hoq nga kjo listë. Pija mbetet në listën e pijeve.')});
+});
+}
+$('mybtn').onclick=()=>{const L=$('mylist');L.hidden=!L.hidden;updMy()};
+function updDel(){const o=$('type').selectedOptions[0];$('wdel').hidden=!isCustom(o)}
+customs.forEach(addCustomOption);updMy();
+const PRE=[{d:'0.948',name:'LongMorn',v:'700',g:'Uiski'},{d:'0.948',name:'Glen Morangie',v:'700',g:'Uiski'},{d:'0.948',name:'Chivas Regal 18',v:'700',g:'Uiski'},{d:'0.945',name:'Gin Fire&Ice',v:'1000',g:'Xhin'},{d:'0.948',name:'Courvaizie VSOP',v:'1000',g:'Konjak dhe brandy'}];
+PRE.forEach(c=>addCustomOption(c));
+Object.assign(DEF,{"Chivas Regal 18|700":{"e":"955"},"Courvaizie VSOP|1000":{"e":"697"},"Gin Fire&Ice|1000":{"f":"1618"},"Glen Morangie|700":{"e":"470"},"LongMorn|700":{"e":"779"},"Viljamovka|1000":{"f":"1613","e":"662"},"Disaronno|1000":{"e":"836"},"Fernet|700":{"f":"1147"},"Hendrick's|700":{"f":"1243"},"Malibu|1000":{"f":"1624"},"Southern Comfort|700":{"f":"1200"},"White Horse|750":{"f":"1191"}});
+if(!sizes['Disaronno'])sizes['Disaronno']='1000';
+
+let DBREF=null,syncT=null,syncBusy=false,syncAgain=false;
+function sync(){if(!DBREF)return;clearTimeout(syncT);syncT=setTimeout(push,600)}
+async function push(){
+if(!DBREF)return;
+if(syncBusy){syncAgain=true;return}
+syncBusy=true;
+try{await DBREF.set({v:1,items:items,wts:wts,sizes:sizes,custom:customs})}catch(e){}
+syncBusy=false;
+if(syncAgain){syncAgain=false;push()}
+}
+function okItem(x){return x&&typeof x.name==='string'&&isFinite(x.ml)&&isFinite(x.pct)&&isFinite(x.doses)}
+async function cloudInit(){
+try{
+if(!window.claude||!window.claude.use)return;
+const db=await window.claude.use('db'),user=await window.claude.use('user');
+if(!db||!user)return;
+const id=await user.id();if(!id)return;
+const ref=db.doc('data/users/'+id+'/inventar');COL=db.collection('data/users/'+id);
+const snap=await ref.get();
+const d=snap.exists?(snap.data()||{}):null;
+if(d&&!touched){
+if(Array.isArray(d.items))items=d.items.filter(okItem);
+if(d.wts&&typeof d.wts==='object')wts=Object.assign({},wts,d.wts);
+if(d.sizes&&typeof d.sizes==='object')sizes=Object.assign({},sizes,d.sizes);
+if(Array.isArray(d.custom))d.custom.forEach(c=>{if(c&&c.name&&!customs.some(x=>x.name===c.name&&x.v===c.v)){customs.push(c);addCustomOption(c)}});
+saveCustoms();
+try{localStorage.setItem('bar_items',JSON.stringify(items));localStorage.setItem('bar_weights',JSON.stringify(wts));localStorage.setItem('bar_sizes',JSON.stringify(sizes))}catch(e){}
+render();loadW();calc();
+DBREF=ref;
+}else{
+DBREF=ref;
+if(touched||items.length||customs.length||Object.keys(wts).length)push();
+}
+try{
+const sc=await COL.get();
+const cloud=sc.docs.filter(d=>d.id.indexOf('inv_')===0).map(d=>Object.assign({id:d.id},d.data())).filter(r=>r&&r.name&&r.date&&Array.isArray(r.items));
+const have={};cloud.forEach(r=>{have[r.id]=1});
+const merged=cloud.slice();
+saved.forEach(r=>{if(!have[r.id]){merged.push(r);COL.doc(r.id).set(r).catch(()=>{})}});
+merged.sort((a,b)=>a.date<b.date?1:-1);
+saved=merged;saveLocalSaved();renderSaved();
+try{if(!localStorage.getItem('bar_name')&&saved.length){const lt=ordered().pop();$('sname').value=nextName(lt.name)}}catch(e){}
+}catch(e){}
+}catch(e){}
+}
+$('nv').innerHTML=$('vol').innerHTML;$('nv').value='1000';
+$('newbtn').onclick=()=>{const f=$('newform');f.hidden=!f.hidden;if(!f.hidden)$('nn').focus()};
+$('ncancel').onclick=()=>{$('newform').hidden=true;$('nerr').textContent=''};
+$('nsave').onclick=()=>{
+const name=$('nn').value.replace(/[|]/g,' ').replace(/\s+/g,' ').trim(),d=$('ng').value,v=$('nv').value,f=+$('nf').value,e=$('ne').value.trim()===''?0:+$('ne').value;
+if(!name){$('nerr').textContent='Shkruaj emrin e pijes.';return}
+if(!(f>0)&&!(e>0)){$('nerr').textContent='Shkruaj peshën e shishes së plotë ose të zbrazët (në gram).';return}
+if(f>0&&e&&!(f>e)){$('nerr').textContent='Pesha e plotë duhet të jetë më e madhe se e zbrazëta.';return}
+if(f>0&&f<+v*0.5){$('nerr').textContent='Pesha duket shumë e vogël për këtë madhësi. Kontrollo numrin.';return}
+if(!(f>0)&&e<+v*0.1){$('nerr').textContent='Pesha e zbrazët duket shumë e vogël. Kontrollo numrin.';return}
+$('nerr').textContent='';
+const c={name:name,d:d,v:v,g:GM[$('ng').selectedOptions[0].text]||''};
+const ec=customs.find(x=>x.name===name&&x.v===v);if(!ec){customs.push(c);saveCustoms()}else if(ec.hid){delete ec.hid;saveCustoms()}
+const o=addCustomOption(c);
+wts[name+'|'+v]={f:f>0?String(f):'',e:e?String(e):''};
+try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(err){}
+touched=true;sync();
+$('type').value=o.value;pick();updDel();
+$('nn').value='';$('nf').value='';$('ne').value='';$('newform').hidden=true;
+say('U ruajt "'+name+'". Tani shkruaj peshën në peshore.');window.scrollTo({top:0,behavior:'smooth'});
+};
+$('wsave').onclick=()=>{
+const f=$('full').value.trim(),e=$('empty').value.trim();
+if(f===''&&e===''){say('Shkruaj fillimisht peshën e plotë ose të zbrazët.');return}
+saveW();
+const nm=$('type').value.split('|')[2]+' '+$('vol').selectedOptions[0].text;
+say('U ruajt pesha për '+nm+'.');
+};
+$('type').addEventListener('change',updDel);
+const _choose=choose;choose=function(o){_choose(o);updDel()};
+let delT=null;
+$('wdel').onclick=()=>{
+const o=$('type').selectedOptions[0];if(!isCustom(o))return;
+if(delT===null){$('wdel').textContent='Sigurt? Prek përsëri';delT=setTimeout(()=>{delT=null;$('wdel').textContent='Fshi këtë pije'},3000);return}
+clearTimeout(delT);delT=null;$('wdel').textContent='Fshi këtë pije';
+const p=o.value.split('|');delCustom({d:p[0],name:p[2],v:p[3]});say('Pija u fshi.');
+};
+updDel();
+cloudInit();
+pick();render();renderSaved();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>
