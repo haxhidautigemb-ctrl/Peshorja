@@ -11,8 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
-<style id="lock">#newbtn,#newform,#wsave,#wdel{display:none!important}</style>
+<style id="lock">#newbtn,#newform,#wsave,#wdel,#mybtn,#mylist{display:none!important}</style>
 <title>Peshorja e barit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -152,6 +153,8 @@ button.pri:active{transform:translateY(1px)}
 </div>
 <div id="sr" hidden role="listbox" aria-label="Rezultatet e kërkimit"></div>
 <button type="button" class="lnk" id="newbtn">+ Shto pije të re</button>
+<button type="button" class="lnk" id="mybtn" style="margin-top:6px">📋 Pijet e mia (0)</button>
+<div id="mylist" hidden></div>
 <div id="newform" hidden>
 <h3>Pije e re</h3>
 <label for="nn">Emri i pijes<input id="nn" type="text" maxlength="40" placeholder="p.sh. Vodka Zubrowka" autocomplete="off"></label>
@@ -300,7 +303,7 @@ button.pri:active{transform:translateY(1px)}
 <div class="in"><input id="cur" type="number" inputmode="decimal" placeholder="0" aria-label="Sa peshon shishja tani (g)"><span class="u">g</span></div>
 </div>
 </div>
-<details open>
+<details>
 <summary>Pesha e shishes (ruhet vetë)</summary>
 <div class="row2" style="margin-top:8px">
 <label for="full">Shishja e plotë (g)
@@ -570,19 +573,60 @@ if(e.key==='Enter'){const b=$('sr').querySelector('.hit');if(b){e.preventDefault
 if(e.key==='Escape'){$('q').value='';searchRun()}
 });
 let customs=[];try{customs=JSON.parse(localStorage.getItem('bar_custom')||'[]')||[]}catch(e){customs=[]}
-function saveCustoms(){try{localStorage.setItem('bar_custom',JSON.stringify(customs))}catch(e){}}
+function saveCustoms(){try{localStorage.setItem('bar_custom',JSON.stringify(customs))}catch(e){}if(typeof updMy==='function'&&$('mybtn'))updMy()}
+const GM={'Vodka':'Vodka','Uiski':'Uiski','Konjak / brandy':'Konjak dhe brandy','Rakia':'Rakia','Rum':'Rum','Xhin':'Xhin','Tekila':'Tekila','Liker':'Liker','Aperitiv':'Aperitiv dhe të tjera','Tjetër':'Aperitiv dhe të tjera'};
 function addCustomOption(c){
-let g=document.getElementById('gmy');
-if(!g){g=document.createElement('optgroup');g.id='gmy';g.label='Pijet e mia';$('type').appendChild(g)}
 const val=c.d+'|40|'+c.name+'|'+c.v;
-if([...g.children].some(o=>o.value===val))return [...g.children].find(o=>o.value===val);
-const o=document.createElement('option');o.value=val;o.textContent=c.name;g.appendChild(o);
-OPT.push({o:o,n:norm(c.name),g:'Pijet e mia'});
+const ex=[...$('type').options].find(o=>o.value===val);if(ex)return ex;
+const GFIX={'LongMorn':'Uiski','Glen Morangie':'Uiski','Chivas Regal 18':'Uiski','Gin Fire&Ice':'Xhin','Courvaizie VSOP':'Konjak dhe brandy'};
+const gl=c.g||GFIX[c.name]||'';
+let g=gl&&[...$('type').querySelectorAll('optgroup')].find(x=>x.label===gl);
+if(!g){g=document.getElementById('gmy');if(!g){g=document.createElement('optgroup');g.id='gmy';g.label='Pijet e mia';$('type').appendChild(g)}}
+const o=document.createElement('option');o.value=val;o.textContent=c.name;o.dataset.my='1';
+const after=[...g.children].find(x=>x.textContent.localeCompare(c.name,'sq')>0);
+if(after)g.insertBefore(o,after);else g.appendChild(o);
+OPT.push({o:o,n:norm(c.name),g:g.label});
 return o;
 }
-function isCustom(o){return o&&o.parentElement&&o.parentElement.id==='gmy'}
+function isCustom(o){return !!(o&&o.dataset&&o.dataset.my==='1')}
+function delCustom(c){
+const o=[...$('type').options].find(x=>x.value===c.d+'|40|'+c.name+'|'+c.v)||[...$('type').options].find(x=>isCustom(x)&&x.value.split('|')[2]===c.name&&x.value.split('|')[3]===c.v);
+customs=customs.filter(x=>!(x.name===c.name&&x.v===c.v));saveCustoms();
+delete wts[c.name+'|'+c.v];try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(err){}
+if(o){const i=OPT.findIndex(x=>x.o===o);if(i>=0)OPT.splice(i,1);const was=$('type').selectedOptions[0]===o;o.remove();if(was){$('type').selectedIndex=0;pick()}}
+touched=true;sync();updDel();updMy();
+}
+function updMy(){
+const vis=customs.filter(c=>!c.hid);$('mybtn').textContent='📋 Pijet e mia ('+vis.length+')';
+const L=$('mylist');if(L.hidden)return;
+L.textContent='';
+const nt=document.createElement('p');nt.className='empty';nt.textContent='Pijet që ke shtuar ti. Shtyp emrin për ta hapur. "Hiq" e heq vetëm nga kjo listë, pija mbetet në listën e pijeve.';L.appendChild(nt);
+if(!vis.length){const p=document.createElement('p');p.className='empty';p.textContent='Lista është bosh.';L.appendChild(p);return}
+vis.slice().sort((a,b)=>a.name.localeCompare(b.name,'sq')).forEach(c=>{
+const r=document.createElement('div');r.style.cssText='display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line,rgba(255,255,255,.12))';
+const w=wts[c.name+'|'+c.v]||{};
+const bits=[(+c.v/1000).toFixed(2)+' L'];
+if(w.f)bits.push('plotë '+w.f+' g');
+if(w.e)bits.push('zbrazët '+w.e+' g');
+if(!w.f&&!w.e)bits.push('pa peshë');
+const n=document.createElement('div');n.style.cssText='min-width:0;cursor:pointer';
+const a1=document.createElement('div');a1.style.cssText='font-weight:700;overflow-wrap:anywhere';a1.textContent=c.name;
+const s2=document.createElement('div');s2.style.cssText='font-size:13px;opacity:.75;margin-top:2px';s2.textContent=bits.join(' · ');
+n.append(a1,s2);
+n.onclick=()=>{const o=[...$('type').options].find(x=>x.value===c.d+'|40|'+c.name+'|'+c.v);if(o){choose(o);$('mylist').hidden=true;window.scrollTo({top:0,behavior:'smooth'})}};
+const bd=document.createElement('button');bd.type='button';bd.textContent='Hiq';bd.style.cssText='width:auto;margin:0;padding:8px 14px;min-width:64px';
+r.append(n,bd);L.appendChild(r);
+arm(bd,'Hiq',()=>{c.hid=true;saveCustoms();touched=true;sync();say('U hoq nga kjo listë. Pija mbetet në listën e pijeve.')});
+});
+}
+$('mybtn').onclick=()=>{const L=$('mylist');L.hidden=!L.hidden;updMy()};
 function updDel(){const o=$('type').selectedOptions[0];$('wdel').hidden=!isCustom(o)}
-customs.forEach(addCustomOption);
+customs.forEach(addCustomOption);updMy();
+const PRE=[{d:'0.948',name:'LongMorn',v:'700',g:'Uiski'},{d:'0.948',name:'Glen Morangie',v:'700',g:'Uiski'},{d:'0.948',name:'Chivas Regal 18',v:'700',g:'Uiski'},{d:'0.945',name:'Gin Fire&Ice',v:'1000',g:'Xhin'},{d:'0.948',name:'Courvaizie VSOP',v:'1000',g:'Konjak dhe brandy'}];
+PRE.forEach(c=>addCustomOption(c));
+Object.assign(DEF,{"Chivas Regal 18|700":{"e":"955"},"Courvaizie VSOP|1000":{"e":"697"},"Gin Fire&Ice|1000":{"f":"1618"},"Glen Morangie|700":{"e":"470"},"LongMorn|700":{"e":"779"},"Viljamovka|1000":{"f":"1613","e":"662"},"Disaronno|1000":{"e":"836"},"Fernet|700":{"f":"1147"},"Hendrick's|700":{"f":"1243"},"Malibu|1000":{"f":"1624"},"Southern Comfort|700":{"f":"1200"},"White Horse|750":{"f":"1191"}});
+if(!sizes['Disaronno'])sizes['Disaronno']='1000';
+
 let DBREF=null,syncT=null,syncBusy=false,syncAgain=false;
 function sync(){if(!DBREF)return;clearTimeout(syncT);syncT=setTimeout(push,600)}
 async function push(){
@@ -634,14 +678,15 @@ $('ncancel').onclick=()=>{$('newform').hidden=true;$('nerr').textContent=''};
 $('nsave').onclick=()=>{
 const name=$('nn').value.replace(/[|]/g,' ').replace(/\s+/g,' ').trim(),d=$('ng').value,v=$('nv').value,f=+$('nf').value,e=$('ne').value.trim()===''?0:+$('ne').value;
 if(!name){$('nerr').textContent='Shkruaj emrin e pijes.';return}
-if(!(f>0)){$('nerr').textContent='Shkruaj peshën e shishes së plotë (në gram).';return}
-if(e&&!(f>e)){$('nerr').textContent='Pesha e plotë duhet të jetë më e madhe se e zbrazëta.';return}
-if(f<+v*0.5){$('nerr').textContent='Pesha duket shumë e vogël për këtë madhësi. Kontrollo numrin.';return}
+if(!(f>0)&&!(e>0)){$('nerr').textContent='Shkruaj peshën e shishes së plotë ose të zbrazët (në gram).';return}
+if(f>0&&e&&!(f>e)){$('nerr').textContent='Pesha e plotë duhet të jetë më e madhe se e zbrazëta.';return}
+if(f>0&&f<+v*0.5){$('nerr').textContent='Pesha duket shumë e vogël për këtë madhësi. Kontrollo numrin.';return}
+if(!(f>0)&&e<+v*0.1){$('nerr').textContent='Pesha e zbrazët duket shumë e vogël. Kontrollo numrin.';return}
 $('nerr').textContent='';
-const c={name:name,d:d,v:v};
-if(!customs.some(x=>x.name===name&&x.v===v)){customs.push(c);saveCustoms()}
+const c={name:name,d:d,v:v,g:GM[$('ng').selectedOptions[0].text]||''};
+const ec=customs.find(x=>x.name===name&&x.v===v);if(!ec){customs.push(c);saveCustoms()}else if(ec.hid){delete ec.hid;saveCustoms()}
 const o=addCustomOption(c);
-wts[name+'|'+v]={f:String(f),e:e?String(e):''};
+wts[name+'|'+v]={f:f>0?String(f):'',e:e?String(e):''};
 try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(err){}
 touched=true;sync();
 $('type').value=o.value;pick();updDel();
@@ -662,19 +707,12 @@ $('wdel').onclick=()=>{
 const o=$('type').selectedOptions[0];if(!isCustom(o))return;
 if(delT===null){$('wdel').textContent='Sigurt? Prek përsëri';delT=setTimeout(()=>{delT=null;$('wdel').textContent='Fshi këtë pije'},3000);return}
 clearTimeout(delT);delT=null;$('wdel').textContent='Fshi këtë pije';
-const p=o.value.split('|'),nm=p[2],v=p[3];
-customs=customs.filter(x=>!(x.name===nm&&x.v===v));saveCustoms();
-delete wts[nm+'|'+v];try{localStorage.setItem('bar_weights',JSON.stringify(wts))}catch(err){}
-const i=OPT.findIndex(x=>x.o===o);if(i>=0)OPT.splice(i,1);
-o.remove();touched=true;sync();
-$('type').selectedIndex=0;pick();updDel();say('Pija u fshi.');
+const p=o.value.split('|');delCustom({d:p[0],name:p[2],v:p[3]});say('Pija u fshi.');
 };
 updDel();
 cloudInit();
 pick();render();renderSaved();
 </script>
-</body>
-</html>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body>
 </html>
